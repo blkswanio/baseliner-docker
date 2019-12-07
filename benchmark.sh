@@ -1,22 +1,29 @@
 #!/bin/bash
 set -e
 
-###############################
-### Environment Information ###
-###############################
-echo -n "Getting Environment Information - " 
-date
 export DEBIAN_FRONTEND=noninteractive
 timestamp=$(date -u +%s)
 run_uuid=$(uuidgen)
 gcc_ver=$(gcc --version | grep gcc | awk '{print $4}')
 
+
 # HW info, no PCI bus on ARM means lshw doesn't have as much information
+# Collect information about hardware, architecturem, BIOS, OS...
+echo -n "[+] Collecting Enviroment Information" - 
+date
+
 nthreads=$(nproc --all)
 total_mem=$(sudo hwinfo --memory | grep "Memory Size" | awk '{print $3 $4}')
-arch=$(uname -m)
+cpu_arch=$(uname -m)
+cpu_speed=$(lscpu | grep "CPU MHz:" | awk -F ":" {'print $2'})
+cpu_vendor=$(lscpu | grep "Vendor ID:" | awk -F ":" {'print $2'})
+cpu_cores=$(lscpu | grep "CPU(s):" | awk -F ":" {'print $2'})
 kernel_release=$(uname -r)
 os_release=$(. /etc/os-release; echo "Ubuntu" ${VERSION/*, /})
+bios_vendor=$(sudo dmidecode --type bios | grep "Vendor" | awk '{print $2}')
+bios_version=$(sudo dmidecode --type bios | grep "Version" | awk '{print $2}')
+bios_rom_size=$(sudo dmidecode --type bios | grep "ROM Size" | awk {'print $3 $4'})
+
 # Because ARM has to do cpuinfo so differently, hardcode for non x86_64...
 nsockets=1
 if [ ${arch} == 'x86_64' ]; then
@@ -33,14 +40,18 @@ else
     mem_clock_speed="Unknown(Unknown_Arch)"
 fi
 
-# Hash
-version_hash=$(git rev-parse HEAD)
+# Prepare data for storing Machine Details in Server
+data='{ "cpu_model":"'${cpu_model}'", "cpu_arch":"'${cpu_arch}'", "cpu_vendor":"'${cpu_vendor}'", "cpu_cores":"'${cpu_cores}'",
+        "bios_rom_size": "'${bios_rom_size}'", "bios_version":"'${bios_version}'", "bios_vendor":"'${bios_vendor}'",
+        "memory_size": "'${total_mem}'", "kernel_release": "'${kernel_release}'" }'
 
-# Write the environment info to file
-echo "run_uuid,timestamp,nodeid,nodeuuid,arch,gcc_ver,version_hash,total_mem,mem_clock_speed,nthreads,nsockets,cpu_model,kernel_release,os_release" > ~/env_out.csv
-echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$arch,$gcc_ver,$version_hash,$total_mem,$mem_clock_speed,$nthreads,$nsockets,$cpu_model,$kernel_release,$os_release" >> ~/env_out.csv
-set -e
+echo $data
 
+# curl \
+#   --header "Content-Type: application/json" \
+#   --request "POST" \
+#   --data "$data" \
+#   http://scruffy.soe.ucsc.edu:5000/api/v1/save-machine-details
 
 #####################
 ### NBP-CPU Tests ###
@@ -56,17 +67,23 @@ make suite
 cd bin
 for (( n=0; n<=$((nsockets-1)); n++ ))
 do
-    for filename in * 
-    do 
+    for filename in *
+    do
         echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, ST) - "
         date
         numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.ST.out
         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.ST.csv
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.ST.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.ST.csv
+        # json_str=$(python3 /scripts/make_json.py ~/npb.$filename.socket${n}.dvfs.ST.csv)
+        # echo $json_str
     done
 done
+cd /root/
+json_str=$(python3 /scripts/make_json.py)
+echo $json_str
 cd ..
+
+exit 0
+
 
 # MT
 cp config/make-MT.def config/make.def
@@ -86,9 +103,7 @@ do
         echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
         date
         numactl -N 0 ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
-        sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.MT.csv
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.MT.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.MT.csv
+        sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d'
     done
 done
 cd ..
