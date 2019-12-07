@@ -7,9 +7,13 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        build-essential \
                        curl \
                        lshw \
+                       libxml2-dev \ 
+                       pkg-config \
+                       gdisk \
                        ethtool \
                        git \
                        fio \
+                       gfortran \
                        msr-tools \
                        cpufrequtils \
                        uuid-runtime \
@@ -17,6 +21,10 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        dmidecode \
                        software-properties-common \
                        libssl-dev \
+                       libcap-dev \
+                       libidn2-0-dev \
+                       nettle-dev \
+                       libnuma-dev \
                        libffi-dev \
                        python3 \
                        iperf3 && \
@@ -24,4 +32,4 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     mkdir -p ~/complete
 
 ADD . /
-CMD ["/run_benchmarks.sh"]
+CMD ["/benchmark.sh"]
