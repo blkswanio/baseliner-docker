@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 export DEBIAN_FRONTEND=noninteractive
 timestamp=$(date -u +%s)
@@ -8,7 +8,9 @@ gcc_ver=$(gcc --version | grep gcc | awk '{print $4}')
 
 
 # HW info, no PCI bus on ARM means lshw doesn't have as much information
-# Collect information about hardware, architecturem, BIOS, OS...
+# Collect information about hardware, architecturem, BIOS, OS.
+# All the collected data will be stored in the machine collection in
+# database.
 echo -n "[+] Collecting Enviroment Information" - 
 date
 
@@ -16,8 +18,8 @@ nthreads=$(nproc --all)
 total_mem=$(sudo hwinfo --memory | grep "Memory Size" | awk '{print $3 $4}')
 cpu_arch=$(uname -m)
 cpu_speed=$(lscpu | grep "CPU MHz:" | awk -F ":" {'print $2'})
-cpu_vendor=$(lscpu | grep "Vendor ID:" | awk -F ":" {'print $2'})
-cpu_cores=$(lscpu | grep "CPU(s):" | awk -F ":" {'print $2'})
+cpu_vendor=$(lscpu | grep "Vendor ID:" | awk -F ":" {'print $2'} | xargs)
+cpu_cores=$(lscpu | grep "CPU(s):" | awk -F ":" {'print $2'} | xargs)
 kernel_release=$(uname -r)
 os_release=$(. /etc/os-release; echo "Ubuntu" ${VERSION/*, /})
 bios_vendor=$(sudo dmidecode --type bios | grep "Vendor" | awk '{print $2}')
@@ -41,24 +43,36 @@ else
 fi
 
 # Prepare data for storing Machine Details in Server
-data='{ "cpu_model":"'${cpu_model}'", "cpu_arch":"'${cpu_arch}'", "cpu_vendor":"'${cpu_vendor}'", "cpu_cores":"'${cpu_cores}'",
-        "bios_rom_size": "'${bios_rom_size}'", "bios_version":"'${bios_version}'", "bios_vendor":"'${bios_vendor}'",
-        "memory_size": "'${total_mem}'", "kernel_release": "'${kernel_release}'" }'
+data='{ 
+        "machine_name": "'$MACHINE_NAME'"
+        "timestamp": "'${timestamp}'"
+        "cpu_model": "'${cpu_model}'", 
+        "cpu_arch": "'${cpu_arch}'", 
+        "cpu_vendor": "'${cpu_vendor}'", 
+        "cpu_cores": "'${cpu_cores}'",
+        "bios_rom_size": "'${bios_rom_size}'", 
+        "bios_version": "'${bios_version}'", 
+        "bios_vendor": "'${bios_vendor}'",
+        "memory_size": "'${total_mem}'", 
+        "kernel_release": "'${kernel_release}'"
+    }'
 
 echo $data
 
-# curl \
-#   --header "Content-Type: application/json" \
-#   --request "POST" \
-#   --data "$data" \
-#   http://scruffy.soe.ucsc.edu:5000/api/v1/save-machine-details
+response=$(curl \
+  --header "Content-Type: application/json" \
+  --request "POST" \
+  --data "$data" \
+  "http://$HOST:$PORT/api/v1/save-machine-details")
 
-#####################
-### NBP-CPU Tests ###
-#####################
+machine_id=$(echo $response | tail -c +2 | head -c -2 | awk -F ":" {'print $2'} | tail -c +2 | head -c -2)
+echo $machine_id
+
+
+########################
+### NBP-CPU-ST TESTS ###
+########################
 cd ../NPB-CPUTests
-
-# ST
 cp config/make-ST.def config/make.def
 cp config/suite-ST.def config/suite.def
 rm -f bin/*
@@ -73,37 +87,32 @@ do
         date
         numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.ST.out
         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.ST.csv
-        # json_str=$(python3 /scripts/make_json.py ~/npb.$filename.socket${n}.dvfs.ST.csv)
-        # echo $json_str
-    done
-done
-cd /root/
-json_str=$(python3 /scripts/make_json.py)
-echo $json_str
-cd ..
-
-exit 0
-
-
-# MT
-cp config/make-MT.def config/make.def
-if [[ $(echo $total_mem | cut -d"G" -f 1) -lt 20 ]]; then
-    cp config/suite-MT-lowmem.def config/suite.def
-else
-    cp config/suite-MT.def config/suite.def
-fi
-rm -f bin/*
-make clean
-make suite
-cd bin
-for (( n=0; n<=$((nsockets-1)); n++ ))
-do
-    for filename in * 
-    do 
-        echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
-        date
-        numactl -N 0 ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
-        sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d'
     done
 done
 cd ..
+
+python3 make_json.py $machine_id
+
+
+# # MT
+# cp config/make-MT.def config/make.def
+# if [[ $(echo $total_mem | cut -d"G" -f 1) -lt 20 ]]; then
+#     cp config/suite-MT-lowmem.def config/suite.def
+# else
+#     cp config/suite-MT.def config/suite.def
+# fi
+# rm -f bin/*
+# make clean
+# make suite
+# cd bin
+# for (( n=0; n<=$((nsockets-1)); n++ ))
+# do
+#     for filename in * 
+#     do 
+#         echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
+#         date
+#         numactl -N 0 ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
+#         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d'
+#     done
+# done
+# cd ..
