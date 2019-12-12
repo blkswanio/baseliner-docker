@@ -56,9 +56,9 @@ done
 cd ..
 
 
-################
-### membench ###
-################
+##################################
+### Membench Memory Benchmarks ###
+##################################
 # Set up make vars
 membench_samples=5
 membench_times=5
@@ -83,6 +83,10 @@ do
     sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_dvfs.csv
 done
 
+python3 /scripts/make_json.py 1234 1
+
+
+exit 0
 
 # # MT
 # cp config/make-MT.def config/make.def
