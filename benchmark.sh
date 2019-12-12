@@ -181,7 +181,7 @@ do
             # Cloudlab Utah, Cloudlab Wisconsin, and Cloudlab Clemson
             # However, this assumption might not hold through future machine types 
             oldparts=($(sudo fdisk -l /dev/$name | grep -v Disk | grep $name | awk '{print $1}' | sed 's@.*/@@'))
-            sudo apt-get install gdisk -y
+            sudo apt-get install gdisk parted -y
             sudo sgdisk -n 0:0:0 /dev/$name
             sudo partprobe
             newparts=($(sudo fdisk -l /dev/$name | grep -v Disk | grep $name | awk '{print $1}' | sed 's@.*/@@'))
@@ -307,4 +307,4 @@ output="fio_info.csv"
 echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
 
-
+echo "Bye ! Exiting."
