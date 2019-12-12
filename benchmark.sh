@@ -33,10 +33,14 @@ machine_id=$(echo $response | tail -c +2 | head -c -2 | awk -F ":" {'print $2'} 
 echo $machine_id
 
 
-########################
-### NBP-CPU-ST TESTS ###
-########################
+##########################
+### NPB CPU Benchmarks ###
+##########################
 cd ../NPB-CPUTests
+# Most of these tests are in fortran
+sudo apt-get install gfortran -y
+
+# ST first
 cp config/make-ST.def config/make.def
 cp config/suite-ST.def config/suite.def
 rm -f bin/*
@@ -45,16 +49,42 @@ make suite
 cd bin
 for (( n=0; n<=$((nsockets-1)); n++ ))
 do
-    for filename in *
-    do
+    for filename in * 
+    do 
         echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, ST) - "
         date
         numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.ST.out
         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.ST.csv
+        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.ST.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.ST.csv
     done
 done
 cd ..
 
+# MT next
+cp config/make-MT.def config/make.def
+if [[ $(echo $total_mem | cut -d"G" -f 1) -lt 20 ]]; then
+    cp config/suite-MT-lowmem.def config/suite.def
+else
+    cp config/suite-MT.def config/suite.def
+fi
+rm -f bin/*
+make clean
+make suite
+cd bin
+for (( n=0; n<=$((nsockets-1)); n++ ))
+do
+    for filename in * 
+    do 
+        echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
+        date
+        numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
+        sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.MT.csv
+        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.MT.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.MT.csv
+    done
+done
+cd ..
 
 ##################################
 ### Membench Memory Benchmarks ###
@@ -83,34 +113,40 @@ do
     sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_dvfs.csv
 done
 
-python3 /scripts/make_json.py 1234 1
+################################
+### STREAM Memory Benchmarks ###
+################################
+# DVFS init
+dvfs="yes"
 
+# Set up make vars
+stream_ntimes=500
+stream_array_size=10000000
+stream_offset=0
+stream_type=double
+stream_optimization=O2
+cd ../STREAM
+
+# make from source and run
+make clean
+make NTIMES=$stream_ntimes STREAM_ARRAY_SIZE=$stream_array_size OFFSET=$stream_offset STREAM_TYPE=$stream_type OPT=$stream_optimization
+echo "run_uuid,timestamp,nodeid,nodeuuid,stream_ntimes,stream_array_size,stream_offset,stream_type,stream_optimization" > ~/stream_info.csv
+echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$stream_ntimes,$stream_array_size,$stream_offset,$stream_type,$stream_optimization" >> ~/stream_info.csv
+
+for (( n=0; n<=$((nsockets-1)); n++ ))
+do
+    echo -n "Running STREAM (dvfs $dvfs, socket $n) - "
+    date
+    numactl -N $n ./streamc
+    mv stream_out.csv ~/stream_out_socket${n}_dvfs.csv
+    # Write to file
+    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_dvfs.csv
+    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
+done
+
+python3 /scripts/make_json.py 1234 $nsockets
 
 exit 0
-
-# # MT
-# cp config/make-MT.def config/make.def
-# if [[ $(echo $total_mem | cut -d"G" -f 1) -lt 20 ]]; then
-#     cp config/suite-MT-lowmem.def config/suite.def
-# else
-#     cp config/suite-MT.def config/suite.def
-# fi
-# rm -f bin/*
-# make clean
-# make suite
-# cd bin
-# for (( n=0; n<=$((nsockets-1)); n++ ))
-# do
-#     for filename in * 
-#     do 
-#         echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
-#         date
-#         numactl -N 0 ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
-#         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d'
-#     done
-# done
-# cd ..
-
 
 ###########
 ### FIO ###
@@ -293,38 +329,6 @@ sed -i "1s/^/$fioheader/" $output
 output="fio_info.csv"
 echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
-
-
-###########################
-### STREAM MEMORY TESTS ###
-###########################
-# DVFS init
-dvfs="yes"
-
-# Set up make vars
-stream_ntimes=500
-stream_array_size=10000000
-stream_offset=0
-stream_type=double
-stream_optimization=O2
-cd ../STREAM
-
-# make from source and run
-make clean
-make NTIMES=$stream_ntimes STREAM_ARRAY_SIZE=$stream_array_size OFFSET=$stream_offset STREAM_TYPE=$stream_type OPT=$stream_optimization
-echo "run_uuid,timestamp,nodeid,nodeuuid,stream_ntimes,stream_array_size,stream_offset,stream_type,stream_optimization" > ~/stream_info.csv
-echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$stream_ntimes,$stream_array_size,$stream_offset,$stream_type,$stream_optimization" >> ~/stream_info.csv
-
-for (( n=0; n<=$((nsockets-1)); n++ ))
-do
-    echo -n "Running STREAM (dvfs $dvfs, socket $n) - "
-    date
-    numactl -N $n ./streamc
-    mv stream_out.csv ~/stream_out_socket${n}_dvfs.csv
-    # Write to file
-    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_dvfs.csv
-    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
-done
 
 
 echo "Bye ! Exiting."
