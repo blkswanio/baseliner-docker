@@ -104,7 +104,33 @@ do
 done
 cd ..
 
-python3 make_json.py $machine_id
+
+################
+### membench ###
+################
+# Set up make vars
+membench_samples=5
+membench_times=5
+# membench_size=1073741824LL # 1024*1024*1024, LL is required due to int overflow issues
+membench_size=$(python -c "multiple=$nthreads * 32; list = [n for n in range(1024**3, 1024**3 + multiple) if n % multiple == 0]; print str(list[0]) + 'LL'")
+membench_optimization=O3
+cd ../membench
+
+# make from source and run
+make clean
+make SAMPLES=$membench_samples TIMES=$membench_times SIZE=$membench_size OPT=$membench_optimization
+echo "run_uuid,timestamp,nodeid,nodeuuid,membench_samples,membench_times,membench_size,membench_optimization" > ~/membench_info.csv
+echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$membench_samples,$membench_times,$membench_size,$membench_optimization" >> ~/membench_info.csv
+for (( n=0; n<=$((nsockets-1)); n++ ))
+do
+    echo -n "Running membench (dvfs $dvfs, socket $n) - "
+    date
+    numactl -N $n ./memory_profiler
+    mv memory_profiler_out.csv ~/membench_out_socket${n}_dvfs.csv
+    # Write to file
+    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/membench_out_socket${n}_dvfs.csv
+    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_dvfs.csv
+done
 
 
 # # MT
@@ -241,7 +267,7 @@ done
 for device in "${testdevs[@]}"
 do
     disk="/dev/$device"
-    
+
     # Sequential Write
     rw="write"
     echo -n "Running fio on $disk with operation $rw and iodepth $iodepth - "
@@ -312,5 +338,38 @@ sed -i "1s/^/$fioheader/" $output
 output="fio_info.csv"
 echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
+
+
+###########################
+### STREAM MEMORY TESTS ###
+###########################
+# DVFS init
+dvfs="yes"
+
+# Set up make vars
+stream_ntimes=500
+stream_array_size=10000000
+stream_offset=0
+stream_type=double
+stream_optimization=O2
+cd ../STREAM
+
+# make from source and run
+make clean
+make NTIMES=$stream_ntimes STREAM_ARRAY_SIZE=$stream_array_size OFFSET=$stream_offset STREAM_TYPE=$stream_type OPT=$stream_optimization
+echo "run_uuid,timestamp,nodeid,nodeuuid,stream_ntimes,stream_array_size,stream_offset,stream_type,stream_optimization" > ~/stream_info.csv
+echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$stream_ntimes,$stream_array_size,$stream_offset,$stream_type,$stream_optimization" >> ~/stream_info.csv
+
+for (( n=0; n<=$((nsockets-1)); n++ ))
+do
+    echo -n "Running STREAM (dvfs $dvfs, socket $n) - "
+    date
+    numactl -N $n ./streamc
+    mv stream_out.csv ~/stream_out_socket${n}_dvfs.csv
+    # Write to file
+    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_dvfs.csv
+    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
+done
+
 
 echo "Bye ! Exiting."
