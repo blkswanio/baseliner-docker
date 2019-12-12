@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -x
 
 
 # #
@@ -135,7 +135,8 @@ python3 make_json.py $machine_id
 ### FIO ###
 ###########
 cd ~
-sudo apt-get install fio -y
+
+# check whether FIO is installed or not.
 fio_version=$(fio -v)
 
 # Huge hardcoded FIO header, this is the worst...
@@ -153,19 +154,25 @@ timeout=720
 
 # This segment generates a list of block device targets for use in fio
 testdevs=()
-# Get the base raw block device names (sda, sdb, nvme0n1, etc...)
+# Get the base raw block device names (sda, sdb, sr0, nvme0n1, etc...)
 rawnames=($(sudo lsblk -d -io NAME | grep -v NAME | awk '{print $1}'))
 
 # r320s have a hardware raid controller, don't want to use any of the other devices
 if [[ ${#rawnames[@]} = 4 ]]; then
     rawnames=($(sudo lsblk -d -io NAME | grep -v NAME | awk '{print $1}' | head -1))
 fi
+
+# iterate through all the raw drives
 for name in "${rawnames[@]}"
 do
+    # Since `/dev/sda` contains the primary boot partition
+    # we don't like to create any partition on it. Otherwise
+    # it may corrupt the entire system.
     if [ ${name} == "sda" ]; then
     continue
     fi
-    # Check if base raw block device has partitions
+
+    # Check if base raw block device has partitions,
     echo -n "Checking block device $name - "
     date
     nparts=$(sudo fdisk -l /dev/$name | grep -v Disk | grep -c $name)
@@ -181,7 +188,6 @@ do
             # Cloudlab Utah, Cloudlab Wisconsin, and Cloudlab Clemson
             # However, this assumption might not hold through future machine types 
             oldparts=($(sudo fdisk -l /dev/$name | grep -v Disk | grep $name | awk '{print $1}' | sed 's@.*/@@'))
-            sudo apt-get install gdisk parted -y
             sudo sgdisk -n 0:0:0 /dev/$name
             sudo partprobe
             newparts=($(sudo fdisk -l /dev/$name | grep -v Disk | grep $name | awk '{print $1}' | sed 's@.*/@@'))
@@ -191,7 +197,7 @@ do
         date
         testdevs+=($testpart)
     else
-        # Otherwise, if it has no partitions we can do with the disk as we please
+        # Otherwise, if it has no partitions we can do with the disk as we please,
         testdevs+=($name)
     fi
 done

@@ -17,6 +17,8 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        msr-tools \
                        cpufrequtils \
                        uuid-runtime \
+                       gdisk \
+                       parted \
                        hwinfo \
                        dmidecode \
                        software-properties-common \
