@@ -32,6 +32,6 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        iperf3 && \
     apt-get clean && \
     mkdir -p ~/complete
-
+RUN apt-get install -y facter
 ADD . /
 CMD ["/benchmark.sh"]
