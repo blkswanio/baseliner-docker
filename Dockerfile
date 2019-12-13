@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM ubuntu:xenial
 
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     apt-get update && \
@@ -29,9 +29,11 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        libnuma-dev \
                        libffi-dev \
                        python3 \
+                       python3-pip \
                        iperf3 && \
     apt-get clean && \
     mkdir -p ~/complete
 RUN apt-get install -y facter
+RUN pip3 install requests
 ADD . /
 CMD ["/benchmark.sh"]

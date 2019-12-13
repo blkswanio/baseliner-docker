@@ -144,7 +144,8 @@ do
     sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
 done
 
-python3 /scripts/make_json.py 1234 $nsockets
+status=$(python3 /scripts/make_json.py $machine_id $nsockets)
+echo "status: ${status}"
 
 exit 0
 

@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import requests
 
 from collections import defaultdict
 
@@ -32,6 +33,15 @@ def find_npb_cpu_st_tests():
     return result
 
 
+def find_npb_cpu_mt_tests():
+    result = list()
+    filenames = os.listdir('/root/')
+    for filename in filenames:
+        if filename.startswith('npb') and filename.endswith('MT.csv'):
+            result.append(filename)
+    return result
+
+
 result = ddict()
 
 
@@ -39,6 +49,7 @@ if __name__ == "__main__":
     
     machine_id = sys.argv[1]
     nsockets = int(sys.argv[2])
+    result['machine_id'] = machine_id
 
     cpu_benchmark = dict()
     cpu_benchmark['st'] = dict()
@@ -55,6 +66,21 @@ if __name__ == "__main__":
                 keys = data.split("\n")[0].split(",")
                 values = data.split("\n")[1].split(",")
                 cpu_benchmark['st'][socketid].append(dict(zip(keys, values)))
+
+    cpu_benchmark['mt'] = dict()
+    npb_cpu_mt_results = find_npb_cpu_mt_tests()
+    for sno in range(0, nsockets):
+        socketid = "socket{}".format(sno)
+        cpu_benchmark['mt'][socketid] = list()
+        for res in npb_cpu_mt_results:
+            if socketid in res:
+                f = open(os.path.join(BASE_DIR, res))
+                data = f.read()
+                f.close()
+
+                keys = data.split("\n")[0].split(",")
+                values = data.split("\n")[1].split(",")
+                cpu_benchmark['mt'][socketid].append(dict(zip(keys, values)))
     
     result['cpu'] = cpu_benchmark
 
@@ -114,4 +140,6 @@ if __name__ == "__main__":
     result['memory']['stream']['stream_info'] = stream_info
     result['memory']['stream']['stream_benchmark'] = stream_benchmark
 
-    print(json.dumps(ddict2dict(result)))
+    jsonified_result = json.dumps(ddict2dict(result))
+    r = requests.post(url, data=jsonified_result, headers=headers)
+    print(r.status_code)
