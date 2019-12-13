@@ -144,14 +144,9 @@ do
     sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
 done
 
-status=$(python3 /scripts/make_json.py $machine_id $nsockets)
-echo "status: ${status}"
-
-exit 0
-
-###########
-### FIO ###
-###########
+###############################
+### FIO Disk I/0 Benchmarks ###
+###############################
 cd ~
 
 # check whether FIO is installed or not.
@@ -183,13 +178,6 @@ fi
 # iterate through all the raw drives
 for name in "${rawnames[@]}"
 do
-    # Since `/dev/sda` contains the primary boot partition
-    # we don't like to create any partition on it. Otherwise
-    # it may corrupt the entire system.
-    if [ ${name} == "sda" ]; then
-    continue
-    fi
-
     # Check if base raw block device has partitions,
     echo -n "Checking block device $name - "
     date
@@ -220,44 +208,11 @@ do
     fi
 done
 
-# Iterate again over the raw block device names to generate disk_info files
-for name in "${rawnames[@]}"
-do
-    echo -n "Collecting information for block device $name - "
-    date
-    filename="disk_info_${name}.csv"
-    disk_name="/dev/$name"
-    disk_model=$(sudo lsblk -d -io MODEL $disk_name | grep -v MODEL | sed -e 's/[[:space:]]*$//')
-    if [ -z "$disk_model" ]; then
-        disk_model="N/A"
-    fi
-    disk_serial=$(sudo lsblk -d -io SERIAL $disk_name | grep -v SERIAL | sed -e 's/[[:space:]]*$//')
-    if [ -z "$disk_serial" ]; then
-        disk_serial="N/A"
-    fi
-    disk_size=$(sudo lsblk -d -io SIZE $disk_name | grep -v SIZE | sed -e 's/[[:space:]]*$//')
-    if [ -z "$disk_size" ]; then
-        disk_size="N/A"
-    fi
-    isrotational=$(sudo lsblk -d -io ROTA $disk_name | grep -v ROTA | sed -e 's/[[:space:]]*$//')
-    if [ -z "$isrotational" ]; then
-        disk_type="N/A"
-    else
-        if [ ${isrotational} == 1 ]; then
-            disk_type="HDD"
-        else
-            disk_type="SSD"
-        fi
-    fi
-    nparts=$(sudo fdisk -l $disk_name | grep -v Disk | grep -c $name)
-    echo "run_uuid,timestamp,nodeid,nodeuuid,disk_name,disk_model,disk_serial,disk_size,disk_type,npartitions" > $filename
-    echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$disk_name,$disk_model,$disk_serial,$disk_size,$disk_type,$nparts" >> $filename
-done
-
 # Iterate over list of devices generated above
 # Run multiple fio commands targeting each
 for device in "${testdevs[@]}"
 do
+    echo "${device}" >> disks.txt
     disk="/dev/$device"
 
     # Sequential Write
@@ -331,5 +286,7 @@ output="fio_info.csv"
 echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
 
-
+# Run data aggregation scripts to collect and send data to server.
+status=$(python3 /scripts/make_json.py $machine_id $nsockets)
+echo "status: ${status}"
 echo "Bye ! Exiting."

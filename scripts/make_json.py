@@ -43,6 +43,15 @@ def find_npb_cpu_mt_tests():
     return result
 
 
+def find_fio_benchmark_result_file(iodepth, type, device):
+    filenames = os.listdir('/root/')
+    for filename in filenames:
+        if type in filename and "io{}".format(iodepth) in filename and filename.endswith("{}.csv".format(device)):
+            return filename
+    return None
+
+
+
 result = ddict()
 
 
@@ -141,6 +150,41 @@ if __name__ == "__main__":
 
     result['memory']['stream']['stream_info'] = stream_info
     result['memory']['stream']['stream_benchmark'] = stream_benchmark
+
+    f = open(os.path.join(BASE_DIR, 'fio_info.csv'))
+    data = f.read()
+    f.close()
+
+    keys = data.split("\n")[0].split(",")
+    values = data.split("\n")[1].split(",")
+    result['disk']['fio']['fio_info'] = dict(zip(keys, values))
+
+    f = open(os.path.join(BASE_DIR, "disks.txt"))
+    data = f.read()
+    f.close()
+
+    devices = data.split("\n")
+    for device in devices[:-1]:
+        iodepth_1_read_seq_benchmark = find_fio_benchmark_result_file(1, 'read_seq', device)
+        iodepth_4096_read_seq_benchmark = find_fio_benchmark_result_file(4096, 'read_seq', device)
+
+        iodepth_1_read_rand_benchmark = find_fio_benchmark_result_file(1, 'read_rand', device)
+        iodepth_4096_read_rand_benchmark = find_fio_benchmark_result_file(4096, 'read_rand', device)
+
+        iodepth_1_write_seq_benchmark = find_fio_benchmark_result_file(1, 'write_seq', device)
+        iodepth_4096_write_seq_benchmark = find_fio_benchmark_result_file(4096, 'write_seq', device)
+
+        iodepth_1_write_rand_benchmark = find_fio_benchmark_result_file(1, 'write_rand', device)
+        iodepth_4096_write_rand_benchmark = find_fio_benchmark_result_file(4096, 'write_rand', device)
+
+        result['disk']['fio']['fio_benchmark'][device]['read_seq']["io_depth_1"] = iodepth_1_read_seq_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['read_seq']["io_depth_4096"] = iodepth_4096_read_seq_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['read_rand']["io_depth_1"] = iodepth_1_read_rand_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['read_rand']["io_depth_4096"] = iodepth_4096_read_rand_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['write_seq']["io_depth_1"] = iodepth_1_write_seq_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['write_seq']["io_depth_4096"] = iodepth_4096_write_seq_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['write_rand']["io_depth_1"] = iodepth_1_write_rand_benchmark
+        result['disk']['fio']['fio_benchmark'][device]['write_rand']["io_depth_4096"] = iodepth_4096_write_rand_benchmark
 
     jsonified_result = json.dumps(ddict2dict(result))
     r = requests.post(url, data=jsonified_result, headers=headers)
