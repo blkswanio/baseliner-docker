@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import requests
+import datetime
 
 from collections import defaultdict
 
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     machine_id = sys.argv[1]
     nsockets = int(sys.argv[2])
     result['machine_id'] = machine_id
+    result['timestamp'] = str(datetime.datetime.now())
 
     cpu_benchmark = dict()
     cpu_benchmark['st'] = dict()
