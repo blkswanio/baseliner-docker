@@ -194,6 +194,6 @@ if __name__ == "__main__":
         result['disk']['fio']['fio_benchmark'][device]['write_rand']["io_depth_1"] = read(iodepth_1_write_rand_benchmark)
         result['disk']['fio']['fio_benchmark'][device]['write_rand']["io_depth_4096"] = read(iodepth_4096_write_rand_benchmark)
 
-    jsonified_result = json.dumps(ddict2dict(result))
+    jsonified_result = json.dumps(ddict2dict(result), sort_keys=True)
     r = requests.post(url, data=jsonified_result, headers=headers)
     print(r.status_code)
