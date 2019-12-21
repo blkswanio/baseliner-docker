@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 
-import pandas
+import pandas as pd
 from influxdb import DataFrameClient
 
 
