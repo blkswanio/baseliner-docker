@@ -34,6 +34,6 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     apt-get clean && \
     mkdir -p ~/complete
 RUN apt-get install -y facter
-RUN pip3 install requests
+RUN pip3 install pandas influxdb
 ADD . /
 CMD ["/benchmark.sh"]

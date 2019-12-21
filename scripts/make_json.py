@@ -23,7 +23,7 @@ def write_dataframe(dataframe, mid, tags, collection):
     df = dataframe.set_index(pd.DatetimeIndex([datetime.now()]))
     saved = client.write_points(df, collection, tags, protocol='line')
     if not saved:
-        print(f"Failed to save {collection} data to DB")
+        print("Failed to save data to DB")
         sys.exit(1)
 
 
