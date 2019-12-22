@@ -8,6 +8,7 @@ from influxdb import DataFrameClient
 
 
 BASE_DIR = '/root/'
+client = None
 
 def connect_to_db(user, password, dbname, host, port=8086):
     client = DataFrameClient(host, port, user, password, dbname)
