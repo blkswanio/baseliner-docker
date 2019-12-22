@@ -8,18 +8,18 @@ from influxdb import DataFrameClient
 
 
 BASE_DIR = '/root/'
-client = None
 
 def connect_to_db(user, password, dbname, host, port=8086):
     client = DataFrameClient(host, port, user, password, dbname)
     if client.ping():
         print('Connection: SUCCESS\n')
+        return client
     else:
         print('Connection: FAILED\n')
         sys.exit(1)
 
 
-def write_dataframe(dataframe, mid, tags, collection):
+def write_dataframe(client, dataframe, mid, tags, collection):
     tags.update({ 'mid': mid })
     df = dataframe.set_index(pd.DatetimeIndex([datetime.now()]))
     saved = client.write_points(df, collection, tags, protocol='line')
@@ -55,7 +55,7 @@ def find_fio_benchmark_result_file(iodepth, type, device):
 
 
 if __name__ == "__main__":
-    connect_to_db('root', 'root', 'blackswan', 'scruffy.soe.ucsc.edu')
+    client = connect_to_db('root', 'root', 'blackswan', 'scruffy.soe.ucsc.edu')
 
     mid = sys.argv[1]
     nsockets = int(sys.argv[2])
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         for res in npb_cpu_st_results:
             if socketid in res:
                 dataframe = pd.read_csv(res)
-                write_dataframe(dataframe, mid, { 'socket': sno }, 'npb_cpu_st')
+                write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_st')
 
     npb_cpu_mt_results = find_npb_cpu_mt_tests()
     for sno in range(0, nsockets):
@@ -74,17 +74,17 @@ if __name__ == "__main__":
         for res in npb_cpu_mt_results:
             if socketid in res:
                 dataframe = pd.read_csv(res)
-                write_dataframe(dataframe, mid, { 'socket': sno }, 'npb_cpu_mt')
+                write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_mt')
 
     for sno in range(0, nsockets):
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read(filename)
-        write_dataframe(dataframe, mid, { 'socket': sno }, 'membench')
+        write_dataframe(client, dataframe, mid, { 'socket': sno }, 'membench')
 
     
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(filename)
-        write_dataframe(dataframe, mid, { 'socket': sno }, 'stream')
+        write_dataframe(client, dataframe, mid, { 'socket': sno }, 'stream')
 
     print('COMPLETED SUCCESSFULLY !')
