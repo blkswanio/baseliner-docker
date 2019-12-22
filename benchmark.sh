@@ -287,6 +287,6 @@ echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_di
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
 
 # Run data aggregation scripts to collect and send data to server.
-status=$(python3 /scripts/make_json.py $machine_id $nsockets)
+status=$(python3 /scripts/orchestrator.py $machine_id $nsockets)
 echo "status: ${status}"
 echo "Bye ! Exiting."
