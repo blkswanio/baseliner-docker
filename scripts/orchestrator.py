@@ -54,6 +54,15 @@ def find_fio_benchmark_result_file(iodepth, type, device):
     return None
 
 
+def read_disks():
+    f = open(os.path.join(BASE_DIR, "disks.txt"))
+    data = f.read()
+    f.close()
+    if not data:
+        return list()
+    return data.split("\n")[:-1]
+
+
 if __name__ == "__main__":
     client = connect_to_db('root', 'root', 'blackswan', 'scruffy.soe.ucsc.edu')
 
@@ -80,11 +89,55 @@ if __name__ == "__main__":
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(filename)
         write_dataframe(client, dataframe, mid, { 'socket': sno }, 'membench')
-
     
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(filename)
         write_dataframe(client, dataframe, mid, { 'socket': sno }, 'stream')
+
+    for device in read_disks():
+        iodepth_1_read_seq_benchmark = find_fio_benchmark_result_file(1, 'read_seq', device)
+        iodepth_4096_read_seq_benchmark = find_fio_benchmark_result_file(4096, 'read_seq', device)
+
+        if iodepth_1_read_seq_benchmark:
+            dataframe = pd.read_csv(iodepth_1_read_seq_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'read_seq', 'io_depth': 1, 'device': device }, 'fio')
+
+        if iodepth_4096_read_seq_benchmark:
+            dataframe = pd.read_csv(iodepth_4096_read_seq_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'read_seq', 'io_depth': 4096, 'device': device }, 'fio')
+
+        iodepth_1_read_rand_benchmark = find_fio_benchmark_result_file(1, 'read_rand', device)
+        iodepth_4096_read_rand_benchmark = find_fio_benchmark_result_file(4096, 'read_rand', device)
+
+        if iodepth_1_read_rand_benchmark:
+            dataframe = pd.read_csv(iodepth_1_read_rand_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'read_rand', 'io_depth': 1, 'device': device }, 'fio')
+
+        if iodepth_4096_read_rand_benchmark:
+            dataframe = pd.read_csv(iodepth_4096_read_rand_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'read_rand', 'io_depth': 4096, 'device': device }, 'fio')
+
+        iodepth_1_write_seq_benchmark = find_fio_benchmark_result_file(1, 'write_seq', device)
+        iodepth_4096_write_seq_benchmark = find_fio_benchmark_result_file(4096, 'write_seq', device)
+
+        if iodepth_1_write_seq_benchmark:
+            dataframe = pd.read_csv(iodepth_1_write_seq_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'write_seq', 'io_depth': 1, 'device': device }, 'fio')
+
+        if iodepth_4096_write_seq_benchmark:
+            dataframe = pd.read_csv(iodepth_4096_write_seq_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'write_seq', 'io_depth': 4096, 'device': device }, 'fio')
+
+        iodepth_1_write_rand_benchmark = find_fio_benchmark_result_file(1, 'write_rand', device)
+        iodepth_4096_write_rand_benchmark = find_fio_benchmark_result_file(4096, 'write_rand', device)
+
+        if iodepth_1_write_rand_benchmark:
+            dataframe = pd.read_csv(iodepth_1_write_rand_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'write_rand', 'io_depth': 1, 'device': device }, 'fio')
+
+        if iodepth_4096_write_rand_benchmark:
+            dataframe = pd.read_csv(iodepth_4096_write_rand_benchmark)
+            write_dataframe(client, dataframe, mid, { 'type': 'write_rand', 'io_depth': 4096, 'device': device }, 'fio')
 
     print('COMPLETED SUCCESSFULLY !')
