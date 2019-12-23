@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     for sno in range(0, nsockets):
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
-        dataframe = pd.read(filename)
+        dataframe = pd.read_csv(filename)
         write_dataframe(client, dataframe, mid, { 'socket': sno }, 'membench')
 
     
