@@ -33,7 +33,7 @@ def find_npb_cpu_st_tests():
     filenames = os.listdir('/root/')
     for filename in filenames:
         if filename.startswith('npb') and filename.endswith('ST.csv'):
-            result.append(filename)
+            result.append(os.path.join(BASE_DIR, filename))
     return result
 
 
@@ -42,7 +42,7 @@ def find_npb_cpu_mt_tests():
     filenames = os.listdir('/root/')
     for filename in filenames:
         if filename.startswith('npb') and filename.endswith('MT.csv'):
-            result.append(filename)
+            result.append(os.path.join(BASE_DIR, filename))
     return result
 
 
@@ -50,7 +50,7 @@ def find_fio_benchmark_result_file(iodepth, type, device):
     filenames = os.listdir('/root/')
     for filename in filenames:
         if type in filename and "io{}".format(iodepth) in filename and filename.endswith("{}.csv".format(device)):
-            return filename
+            return os.path.join(BASE_DIR, filename)
     return None
 
 
@@ -75,6 +75,7 @@ if __name__ == "__main__":
         for res in npb_cpu_st_results:
             if socketid in res:
                 dataframe = pd.read_csv(res)
+                dataframe['size'] = str(dataframe['size'])
                 write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_st')
 
     npb_cpu_mt_results = find_npb_cpu_mt_tests()
@@ -83,16 +84,17 @@ if __name__ == "__main__":
         for res in npb_cpu_mt_results:
             if socketid in res:
                 dataframe = pd.read_csv(res)
+                dataframe['size'] = str(dataframe['size'])
                 write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_mt')
 
     for sno in range(0, nsockets):
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
-        dataframe = pd.read_csv(filename)
+        dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_dataframe(client, dataframe, mid, { 'socket': sno }, 'membench')
     
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
-        dataframe = pd.read_csv(filename)
+        dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_dataframe(client, dataframe, mid, { 'socket': sno }, 'stream')
 
     for device in read_disks():

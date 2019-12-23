@@ -212,7 +212,7 @@ done
 # Run multiple fio commands targeting each
 for device in "${testdevs[@]}"
 do
-    echo "${device}" >> disks.txt
+    echo "${device}" >> ~/disks.txt
     disk="/dev/$device"
 
     # Sequential Write
