@@ -85,17 +85,17 @@ if __name__ == "__main__":
             if socketid in res:
                 dataframe = pd.read_csv(res)
                 dataframe['size'] = str(dataframe['size'])
-                write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_mt')
+                write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'npb_cpu_mt')
 
     for sno in range(0, nsockets):
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
-        write_dataframe(client, dataframe, mid, { 'socket': sno }, 'membench')
+        write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'membench')
     
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
-        write_dataframe(client, dataframe, mid, { 'socket': sno }, 'stream')
+        write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'stream')
 
     for device in read_disks():
         iodepth_1_read_seq_benchmark = find_fio_benchmark_result_file(1, 'read_seq', device)
