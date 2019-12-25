@@ -76,7 +76,7 @@ if __name__ == "__main__":
             if socketid in res:
                 dataframe = pd.read_csv(res)
                 dataframe['size'] = str(dataframe['size'])
-                write_dataframe(client, dataframe, mid, { 'socket': sno }, 'npb_cpu_st')
+                write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'npb_cpu_st')
 
     npb_cpu_mt_results = find_npb_cpu_mt_tests()
     for sno in range(0, nsockets):
