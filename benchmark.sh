@@ -5,10 +5,6 @@ export DEBIAN_FRONTEND=noninteractive
 timestamp=$(date -u +%s)
 run_uuid=$(uuidgen)
 
-
-# Collect information about the machine where the 
-# benchmarks will be run using facter 
-# and some other linux command line tools.
 echo -n "[+] Collecting Enviroment Information" - 
 date
 
@@ -20,18 +16,6 @@ nsockets=1
 if [ ${arch} == 'x86_64' ]; then
     nsockets=$(cat /proc/cpuinfo | grep "physical id" | sort -n | uniq | wc -l)
 fi
-
-data=$(facter --json)
-
-response=$(curl \
-  --header "Content-Type: application/json" \
-  --request "POST" \
-  --data "$data" \
-  "http://$HOST:$PORT/api/v1/save-machine-details")
-
-machine_id=$(echo $response | tail -c +2 | head -c -2 | awk -F ":" {'print $2'} | tail -c +2 | head -c -2)
-echo $machine_id
-
 
 ##########################
 ### NPB CPU Benchmarks ###
@@ -287,6 +271,6 @@ echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_di
 echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
 
 # Run data aggregation scripts to collect and send data to server.
-status=$(python3 /scripts/orchestrator.py $machine_id $nsockets)
+status=$(python3 /scripts/orchestrator.py $nsockets)
 echo "status: ${status}"
 echo "Bye ! Exiting."
