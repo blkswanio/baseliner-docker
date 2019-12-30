@@ -1,6 +1,9 @@
 import sys
 import os
+import json
+import subprocess
 import sys
+import hashlib
 from datetime import datetime
 
 import pandas as pd
@@ -61,14 +64,35 @@ def read_disks():
     if not data:
         return list()
     return data.split("\n")[:-1]
+    
+def generate_mid():
+    facter_output = subprocess.check_output(["facter", "--json"]).decode("utf-8")
+    machine_info = json.loads(facter_output)
+    useless_metadata = [
+        'facterversion', 'identity', 'system_uptime', 'virtual', 
+        'is_virtual', 'timezone', 'path', 'uptime', 'uniqueid', 'ps',
+        'rubyplatform', 'uptime_hours', 'gid', 'rubysitedir', 'id', 'uptime_seconds',
+        'uptime_days', 'rubyversion', 'hostname', 'fqdn', 'memoryfree_mb'
+    ]
+    for key in useless_metadata:
+        machine_info.pop(key, None)
+    machine_info_json = json.dumps(machine_info, sort_keys = True).encode("utf-8")
+    mid = hashlib.md5(machine_info_json).hexdigest()
+    return mid, machine_info
 
 
 if __name__ == "__main__":
+    nsockets = int(sys.argv[1])
+    # Connect to InfluxDB instance and return client instance
     client = connect_to_db('root', 'root', 'blackswan', 'scruffy.soe.ucsc.edu')
 
-    mid = sys.argv[1]
-    nsockets = int(sys.argv[2])
+    # Generate a mid (machine id) and save the machine information
+    mid, machine_info = generate_mid()
+    df = pd.DataFrame([machine_info])
+    write_dataframe(client, df, mid, dict(), 'machine_information')
 
+    sys.exit(0)
+    # Gather and Save NAS CPU ST benchmarks
     npb_cpu_st_results = find_npb_cpu_st_tests()
     for sno in range(0, nsockets):
         socketid = "socket{}".format(sno)
@@ -78,6 +102,7 @@ if __name__ == "__main__":
                 dataframe['size'] = str(dataframe['size'])
                 write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'npb_cpu_st')
 
+    # Gather and Save NAS CPU MT benchmarks
     npb_cpu_mt_results = find_npb_cpu_mt_tests()
     for sno in range(0, nsockets):
         socketid = "socket{}".format(sno)
@@ -87,16 +112,19 @@ if __name__ == "__main__":
                 dataframe['size'] = str(dataframe['size'])
                 write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'npb_cpu_mt')
 
+    # Gather and Save membench benchmarks
     for sno in range(0, nsockets):
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'membench')
     
+    # Gather and Save stream benchmarks
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
         dataframe = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_dataframe(client, dataframe, mid, { 'socket': str(sno) }, 'stream')
 
+    # Gather and Save fio benchmarks
     for device in read_disks():
         iodepth_1_read_seq_benchmark = find_fio_benchmark_result_file(1, 'read_seq', device)
         iodepth_4096_read_seq_benchmark = find_fio_benchmark_result_file(4096, 'read_seq', device)
