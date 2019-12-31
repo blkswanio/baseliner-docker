@@ -9,6 +9,7 @@ echo -n "[+] Collecting Enviroment Information" -
 date
 
 # Check the number of threads, sockets and total memory present.
+arch=$(uname -m)
 nthreads=$(nproc --all)
 total_mem=$(sudo hwinfo --memory | grep "Memory Size" | awk '{print $3 $4}')
 # Because ARM has to do cpuinfo so differently, hardcode for non x86_64.
