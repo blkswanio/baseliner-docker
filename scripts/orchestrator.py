@@ -84,7 +84,11 @@ def generate_mid():
 if __name__ == "__main__":
     nsockets = int(sys.argv[1])
     # Connect to InfluxDB instance and return client instance
-    client = connect_to_db('root', 'root', 'blackswan', 'scruffy.soe.ucsc.edu')
+    user = os.environ['BLACKSWAN_USER']
+    passwd = os.environ['BLACKSWAN_PASSWD']
+    database = os.environ['BLACKSWAN_DB']
+    host = os.environ['BLACKSWAN_HOST']
+    client = connect_to_db(user, passwd, database, host)
 
     # Generate a mid (machine id) and save the machine information
     mid, machine_info = generate_mid()
