@@ -17,6 +17,9 @@ nsockets=1
 if [ ${arch} == 'x86_64' ]; then
     nsockets=$(cat /proc/cpuinfo | grep "physical id" | sort -n | uniq | wc -l)
 fi
+# DVFS init
+dvfs="yes"
+
 
 ##########################
 ### NPB CPU Benchmarks ###
@@ -101,8 +104,6 @@ done
 ################################
 ### STREAM Memory Benchmarks ###
 ################################
-# DVFS init
-dvfs="yes"
 
 # Set up make vars
 stream_ntimes=500
