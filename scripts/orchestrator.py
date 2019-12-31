@@ -33,7 +33,7 @@ def write_dataframe(client, dataframe, mid, tags, collection):
 
 def find_npb_cpu_st_tests():
     result = list()
-    filenames = os.listdir('/root/')
+    filenames = os.listdir(BASE_DIR)
     for filename in filenames:
         if filename.startswith('npb') and filename.endswith('ST.csv'):
             result.append(os.path.join(BASE_DIR, filename))
@@ -42,7 +42,7 @@ def find_npb_cpu_st_tests():
 
 def find_npb_cpu_mt_tests():
     result = list()
-    filenames = os.listdir('/root/')
+    filenames = os.listdir(BASE_DIR)
     for filename in filenames:
         if filename.startswith('npb') and filename.endswith('MT.csv'):
             result.append(os.path.join(BASE_DIR, filename))
@@ -50,7 +50,7 @@ def find_npb_cpu_mt_tests():
 
 
 def find_fio_benchmark_result_file(iodepth, type, device):
-    filenames = os.listdir('/root/')
+    filenames = os.listdir(BASE_DIR)
     for filename in filenames:
         if type in filename and "io{}".format(iodepth) in filename and filename.endswith("{}.csv".format(device)):
             return os.path.join(BASE_DIR, filename)
@@ -95,7 +95,6 @@ if __name__ == "__main__":
     df = pd.DataFrame([machine_info])
     write_dataframe(client, df, mid, dict(), 'machine_information')
 
-    sys.exit(0)
     # Gather and Save NAS CPU ST benchmarks
     npb_cpu_st_results = find_npb_cpu_st_tests()
     for sno in range(0, nsockets):
