@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -e
 
 export DEBIAN_FRONTEND=noninteractive
 timestamp=$(date -u +%s)
