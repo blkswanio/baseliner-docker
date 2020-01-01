@@ -29,6 +29,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p ~/complete
-RUN pip3 install --upgrade pip && pip install --no-cache-dir influxdb
+RUN pip3 install --upgrade pip
+RUN pip3 install --no-cache-dir influxdb
 ADD . /
 CMD ["/benchmark.sh"]
