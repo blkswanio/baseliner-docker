@@ -130,6 +130,122 @@ do
     sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
 done
 
+############
+### DVFS ###
+############
+# Only works on x86_64, and for some reason doesn't currently work on Xeon Gold 6142 procs
+if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6142 | head -1) ]; then
+    # Turn DVFS stuff off, re-run memory experiments
+    dvfs="no"
+    sudo apt-get install msr-tools cpufrequtils -y
+    sudo modprobe msr
+    oldgovernor=$(sudo cpufreq-info -p | awk '{print $3}')
+    for (( n=0; n<=$((nthreads-1)); n++ ))
+    do
+        sudo wrmsr -p$n 0x1a0 0x4000850089
+        sudo cpufreq-set -c $n -g performance
+    done
+    
+    
+    # STREAM
+    cd ../STREAM
+    for (( n=0; n<=$((nsockets-1)); n++ ))
+    do
+        echo -n "Running STREAM $filename (dvfs $dvfs, socket $n) - "
+        date
+        numactl -N $n ./streamc
+        mv stream_out.csv ~/stream_out_socket${n}_nodvfs.csv
+        # Write to file
+        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_nodvfs.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_nodvfs.csv
+    done
+    
+    # membench
+    cd ../membench
+    for (( n=0; n<=$((nsockets-1)); n++ ))
+    do
+        echo -n "Running membench (dvfs $dvfs, socket $n, ST) - "
+        date
+        numactl -N $n ./memory_profiler
+        mv memory_profiler_out.csv ~/membench_out_socket${n}_nodvfs.csv
+        # Write to file
+        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/membench_out_socket${n}_nodvfs.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_nodvfs.csv
+    done
+    
+    # NPB CPU ST
+    cd ../NPB-CPUTests
+    cp config/make-ST.def config/make.def
+    cp config/suite-ST.def config/suite.def
+    rm -f bin/*
+    make clean
+    make suite
+    cd bin
+    for (( n=0; n<=$((nsockets-1)); n++ ))
+    do
+        for filename in * 
+        do 
+            echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, ST) - "
+            date
+            numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.nodvfs.ST.out
+            sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.nodvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.nodvfs.ST.csv
+            sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.ST.csv
+            sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.ST.csv
+        done
+    done
+    cd ..
+
+    # NPB CPU MT
+    cp config/make-MT.def config/make.def
+    if [[ $(echo $total_mem | cut -d"G" -f 1) -lt 20 ]]; then
+        cp config/suite-MT-lowmem.def config/suite.def
+    else
+        cp config/suite-MT.def config/suite.def
+    fi
+    rm -f bin/*
+    make clean
+    make suite
+    cd bin
+    for (( n=0; n<=$((nsockets-1)); n++ ))
+    do
+        for filename in * 
+        do 
+            echo -n "Running NPB CPU Test $filename (dvfs $dvfs, socket $n, MT) - "
+            date
+            numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.nodvfs.MT.out
+            sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.nodvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.nodvfs.MT.csv
+            sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.MT.csv
+            sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.MT.csv
+        done
+    done
+    
+    # NPB CPU MT Extra EP tests
+    for (( n=0; n<=$((nsockets-1)); n++ ))
+    do
+        for (( i=1; i<=30; i++ ))
+        do 
+            for filename in ft*
+            do
+                echo -n "Running Extra NPB CPU Test $filename (dvfs $dvfs, socket $n, MT, run $i) - "
+                date
+                numactl -N ${n} -m ${n} ./$filename > ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.out
+                sed '1,/nas.nasa.gov/d' ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
+                sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs,run_num/' ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
+                sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs,$i/" ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
+            done
+        done
+    done
+    cd ..
+    
+    # Change everything back to normal
+    for (( n=0; n<=$((nthreads-1)); n++ ))
+    do
+        sudo wrmsr -p$n 0x1a0 0x850089
+        sudo cpufreq-set -c $n -g $oldgovernor
+    done
+fi
+
+
 ###############################
 ### FIO Disk I/0 Benchmarks ###
 ###############################
