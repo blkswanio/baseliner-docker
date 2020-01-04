@@ -1,12 +1,9 @@
-FROM ubuntu:xenial
+FROM debian:jessie-slim
 
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-    apt-get update && \
-    apt-get install -y sudo \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends sudo \
                        numactl \
                        build-essential \
-                       curl \
-                       lshw \
                        libxml2-dev \ 
                        pkg-config \
                        gdisk \
@@ -14,13 +11,9 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        git \
                        fio \
                        gfortran \
-                       msr-tools \
-                       cpufrequtils \
                        uuid-runtime \
-                       gdisk \
                        parted \
                        hwinfo \
-                       dmidecode \
                        software-properties-common \
                        libssl-dev \
                        libcap-dev \
@@ -28,14 +21,15 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
                        nettle-dev \
                        libnuma-dev \
                        libffi-dev \
+                       facter \
+                       python3-pandas \
                        python3 \
                        python3-pip \
                        iperf3 && \
     apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
     mkdir -p ~/complete
-RUN apt-get install -y facter
-RUN apt-get install -y python3-pandas
 RUN pip3 install --upgrade pip
-RUN pip3 install influxdb
+RUN pip3 install --no-cache-dir influxdb
 ADD . /
 CMD ["/benchmark.sh"]
