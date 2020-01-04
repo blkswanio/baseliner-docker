@@ -243,13 +243,10 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
     done
 fi
 
-
 ###############################
 ### FIO Disk I/0 Benchmarks ###
 ###############################
 cd ~
-
-# check whether FIO is installed or not.
 fio_version=$(fio -v)
 
 # Huge hardcoded FIO header, this is the worst...
@@ -267,18 +264,16 @@ timeout=720
 
 # This segment generates a list of block device targets for use in fio
 testdevs=()
-# Get the base raw block device names (sda, sdb, sr0, nvme0n1, etc...)
+# Get the base raw block device names (sda, sdb, nvme0n1, etc...)
 rawnames=($(sudo lsblk -d -io NAME | grep -v NAME | awk '{print $1}'))
 
 # r320s have a hardware raid controller, don't want to use any of the other devices
 if [[ ${#rawnames[@]} = 4 ]]; then
     rawnames=($(sudo lsblk -d -io NAME | grep -v NAME | awk '{print $1}' | head -1))
 fi
-
-# iterate through all the raw drives
 for name in "${rawnames[@]}"
 do
-    # Check if base raw block device has partitions,
+    # Check if base raw block device has partitions
     echo -n "Checking block device $name - "
     date
     nparts=$(sudo fdisk -l /dev/$name | grep -v Disk | grep -c $name)
@@ -303,9 +298,43 @@ do
         date
         testdevs+=($testpart)
     else
-        # Otherwise, if it has no partitions we can do with the disk as we please,
+        # Otherwise, if it has no partitions we can do with the disk as we please
         testdevs+=($name)
     fi
+done
+
+# Iterate again over the raw block device names to generate disk_info files
+for name in "${rawnames[@]}"
+do
+    echo -n "Collecting information for block device $name - "
+    date
+    filename="disk_info_${name}.csv"
+    disk_name="/dev/$name"
+    disk_model=$(sudo lsblk -d -io MODEL $disk_name | grep -v MODEL | sed -e 's/[[:space:]]*$//')
+    if [ -z "$disk_model" ]; then
+        disk_model="N/A"
+    fi
+    disk_serial=$(sudo lsblk -d -io SERIAL $disk_name | grep -v SERIAL | sed -e 's/[[:space:]]*$//')
+    if [ -z "$disk_serial" ]; then
+        disk_serial="N/A"
+    fi
+    disk_size=$(sudo lsblk -d -io SIZE $disk_name | grep -v SIZE | sed -e 's/[[:space:]]*$//')
+    if [ -z "$disk_size" ]; then
+        disk_size="N/A"
+    fi
+    isrotational=$(sudo lsblk -d -io ROTA $disk_name | grep -v ROTA | sed -e 's/[[:space:]]*$//')
+    if [ -z "$isrotational" ]; then
+        disk_type="N/A"
+    else
+        if [ ${isrotational} == 1 ]; then
+            disk_type="HDD"
+        else
+            disk_type="SSD"
+        fi
+    fi
+    nparts=$(sudo fdisk -l $disk_name | grep -v Disk | grep -c $name)
+    echo "run_uuid,timestamp,nodeid,nodeuuid,disk_name,disk_model,disk_serial,disk_size,disk_type,npartitions" > $filename
+    echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$disk_name,$disk_model,$disk_serial,$disk_size,$disk_type,$nparts" >> $filename
 done
 
 # Iterate over list of devices generated above
