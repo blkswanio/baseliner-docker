@@ -11,6 +11,7 @@ RUN apt-get update && \
                        git \
                        fio \
                        gfortran \
+                       module-init-tools \
                        uuid-runtime \
                        parted \
                        msr-tools \
