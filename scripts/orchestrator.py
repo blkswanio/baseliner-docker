@@ -92,8 +92,9 @@ if __name__ == "__main__":
 
     # Generate a mid (machine id) and save the machine information
     mid, machine_info = generate_mid()
-    df = pd.DataFrame([machine_info])
-    write_dataframe(client, df, mid, dict(), 'machine_information')
+    if not client.query("select * from machine_information where \"mid\" = \'{}\'".format(mid)):
+        df = pd.DataFrame([machine_info])
+        write_dataframe(client, df, mid, dict(), 'machine_information')
 
     # Gather and Save NAS CPU ST benchmarks
     npb_cpu_st_results = find_npb_cpu_st_tests()
