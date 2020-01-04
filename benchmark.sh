@@ -26,7 +26,6 @@ dvfs="yes"
 ##########################
 cd ../NPB-CPUTests
 # Most of these tests are in fortran
-sudo apt-get install gfortran -y
 
 # ST first
 cp config/make-ST.def config/make.def
@@ -137,7 +136,6 @@ done
 if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6142 | head -1) ]; then
     # Turn DVFS stuff off, re-run memory experiments
     dvfs="no"
-    sudo apt-get install msr-tools cpufrequtils -y
     sudo modprobe msr
     oldgovernor=$(sudo cpufreq-info -p | awk '{print $3}')
     for (( n=0; n<=$((nthreads-1)); n++ ))
