@@ -13,6 +13,8 @@ RUN apt-get update && \
                        gfortran \
                        uuid-runtime \
                        parted \
+                       msr-tools \
+                       cpufrequtils \
                        hwinfo \
                        software-properties-common \
                        libssl-dev \
