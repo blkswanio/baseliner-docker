@@ -72,7 +72,8 @@ def generate_mid():
         'facterversion', 'identity', 'system_uptime', 'virtual', 
         'is_virtual', 'timezone', 'path', 'uptime', 'uniqueid', 'ps',
         'rubyplatform', 'uptime_hours', 'gid', 'rubysitedir', 'id', 'uptime_seconds',
-        'uptime_days', 'rubyversion', 'hostname', 'fqdn', 'memoryfree_mb'
+        'uptime_days', 'rubyversion', 'hostname', 'fqdn', 'memoryfree_mb',
+        'memoryfree', 'swapfree_mb', 'swapfree'
     ]
     for key in useless_metadata:
         machine_info.pop(key, None)
