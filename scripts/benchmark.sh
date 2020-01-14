@@ -41,8 +41,8 @@ do
         date
         numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.ST.out
         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.ST.csv
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.ST.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.ST.csv
+        sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.ST.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.ST.csv
     done
 done
 cd ..
@@ -66,8 +66,8 @@ do
         date
         numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.dvfs.MT.out
         sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.dvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.dvfs.MT.csv
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.MT.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.MT.csv
+        sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/npb.$filename.socket${n}.dvfs.MT.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/npb.$filename.socket${n}.dvfs.MT.csv
     done
 done
 cd ..
@@ -86,8 +86,8 @@ cd ../membench
 # make from source and run
 make clean
 make SAMPLES=$membench_samples TIMES=$membench_times SIZE=$membench_size OPT=$membench_optimization
-echo "run_uuid,timestamp,nodeid,nodeuuid,membench_samples,membench_times,membench_size,membench_optimization" > ~/membench_info.csv
-echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$membench_samples,$membench_times,$membench_size,$membench_optimization" >> ~/membench_info.csv
+echo "run_uuid,timestamp,membench_samples,membench_times,membench_size,membench_optimization" > ~/membench_info.csv
+echo "$run_uuid,$timestamp,$membench_samples,$membench_times,$membench_size,$membench_optimization" >> ~/membench_info.csv
 for (( n=0; n<=$((nsockets-1)); n++ ))
 do
     echo -n "Running membench (dvfs $dvfs, socket $n) - "
@@ -95,8 +95,8 @@ do
     numactl -N $n ./memory_profiler
     mv memory_profiler_out.csv ~/membench_out_socket${n}_dvfs.csv
     # Write to file
-    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/membench_out_socket${n}_dvfs.csv
-    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_dvfs.csv
+    sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/membench_out_socket${n}_dvfs.csv
+    sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/membench_out_socket${n}_dvfs.csv
 done
 
 ################################
@@ -114,8 +114,8 @@ cd ../STREAM
 # make from source and run
 make clean
 make NTIMES=$stream_ntimes STREAM_ARRAY_SIZE=$stream_array_size OFFSET=$stream_offset STREAM_TYPE=$stream_type OPT=$stream_optimization
-echo "run_uuid,timestamp,nodeid,nodeuuid,stream_ntimes,stream_array_size,stream_offset,stream_type,stream_optimization" > ~/stream_info.csv
-echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$stream_ntimes,$stream_array_size,$stream_offset,$stream_type,$stream_optimization" >> ~/stream_info.csv
+echo "run_uuid,timestamp,stream_ntimes,stream_array_size,stream_offset,stream_type,stream_optimization" > ~/stream_info.csv
+echo "$run_uuid,$timestamp,$stream_ntimes,$stream_array_size,$stream_offset,$stream_type,$stream_optimization" >> ~/stream_info.csv
 
 for (( n=0; n<=$((nsockets-1)); n++ ))
 do
@@ -124,8 +124,8 @@ do
     numactl -N $n ./streamc
     mv stream_out.csv ~/stream_out_socket${n}_dvfs.csv
     # Write to file
-    sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_dvfs.csv
-    sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
+    sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/stream_out_socket${n}_dvfs.csv
+    sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/stream_out_socket${n}_dvfs.csv
 done
 
 ############
@@ -153,8 +153,8 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
         numactl -N $n ./streamc
         mv stream_out.csv ~/stream_out_socket${n}_nodvfs.csv
         # Write to file
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/stream_out_socket${n}_nodvfs.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/stream_out_socket${n}_nodvfs.csv
+        sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/stream_out_socket${n}_nodvfs.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/stream_out_socket${n}_nodvfs.csv
     done
     
     # membench
@@ -166,8 +166,8 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
         numactl -N $n ./memory_profiler
         mv memory_profiler_out.csv ~/membench_out_socket${n}_nodvfs.csv
         # Write to file
-        sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/membench_out_socket${n}_nodvfs.csv
-        sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/membench_out_socket${n}_nodvfs.csv
+        sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/membench_out_socket${n}_nodvfs.csv
+        sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/membench_out_socket${n}_nodvfs.csv
     done
     
     # NPB CPU ST
@@ -186,8 +186,8 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
             date
             numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.nodvfs.ST.out
             sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.nodvfs.ST.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.nodvfs.ST.csv
-            sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.ST.csv
-            sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.ST.csv
+            sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.ST.csv
+            sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.ST.csv
         done
     done
     cd ..
@@ -211,8 +211,8 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
             date
             numactl -N ${n} ./$filename > ~/npb.$filename.socket${n}.nodvfs.MT.out
             sed '1,/nas.nasa.gov/d' ~/npb.$filename.socket${n}.nodvfs.MT.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/npb.$filename.socket${n}.nodvfs.MT.csv
-            sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.MT.csv
-            sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.MT.csv
+            sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs/' ~/npb.$filename.socket${n}.nodvfs.MT.csv
+            sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs/" ~/npb.$filename.socket${n}.nodvfs.MT.csv
         done
     done
     
@@ -227,8 +227,8 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
                 date
                 numactl -N ${n} -m ${n} ./$filename > ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.out
                 sed '1,/nas.nasa.gov/d' ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.out | sed 's/ *, */,/g' | sed '/./,$!d' > ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
-                sed -i '1s/$/,run_uuid,timestamp,nodeid,nodeuuid,socket_num,dvfs,run_num/' ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
-                sed -i "2s/$/,$run_uuid,$timestamp,$nodeid,$nodeuuid,$n,$dvfs,$i/" ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
+                sed -i '1s/$/,run_uuid,timestamp,socket_num,dvfs,run_num/' ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
+                sed -i "2s/$/,$run_uuid,$timestamp,$n,$dvfs,$i/" ~/extra-npb.$filename.socket${n}.nodvfs.MT.run${i}.csv
             done
         done
     done
@@ -332,8 +332,8 @@ do
         fi
     fi
     nparts=$(sudo fdisk -l $disk_name | grep -v Disk | grep -c $name)
-    echo "run_uuid,timestamp,nodeid,nodeuuid,disk_name,disk_model,disk_serial,disk_size,disk_type,npartitions" > $filename
-    echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$disk_name,$disk_model,$disk_serial,$disk_size,$disk_type,$nparts" >> $filename
+    echo "run_uuid,timestamp,disk_name,disk_model,disk_serial,disk_size,disk_type,npartitions" > $filename
+    echo "$run_uuid,$timestamp,$disk_name,$disk_model,$disk_serial,$disk_size,$disk_type,$nparts" >> $filename
 done
 
 # Iterate over list of devices generated above
@@ -411,8 +411,8 @@ output="fio_*"
 sed -i 's/\;/\,/g' $output
 sed -i "1s/^/$fioheader/" $output
 output="fio_info.csv"
-echo "run_uuid,timestamp,nodeid,nodeuuid,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
-echo "$run_uuid,$timestamp,$nodeid,$nodeuuid,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
+echo "run_uuid,timestamp,fio_version,fio_size,fio_iodepth,fio_direct,fio_numjobs,fio_ioengine,fio_blocksize,fio_timeout" > $output
+echo "$run_uuid,$timestamp,$fio_version,$size,$iodepth,$direct,$numjobs,$ioengine,$blocksize,$timeout" >> $output
 
 # Run data aggregation scripts to collect and send data to server.
 status=$(python3 /scripts/orchestrator.py $nsockets)
