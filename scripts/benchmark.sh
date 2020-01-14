@@ -23,7 +23,7 @@ dvfs="yes"
 ##########################
 ### NPB CPU Benchmarks ###
 ##########################
-cd ../NPB-CPUTests
+cd /lib/NPB-CPUTests
 # Most of these tests are in fortran
 
 # ST first
@@ -81,7 +81,7 @@ membench_times=5
 # membench_size=1073741824LL # 1024*1024*1024, LL is required due to int overflow issues
 membench_size=$(python -c "multiple=$nthreads * 32; list = [n for n in range(1024**3, 1024**3 + multiple) if n % multiple == 0]; print str(list[0]) + 'LL'")
 membench_optimization=O3
-cd ../membench
+cd /lib/membench
 
 # make from source and run
 make clean
@@ -109,7 +109,7 @@ stream_array_size=10000000
 stream_offset=0
 stream_type=double
 stream_optimization=O2
-cd ../STREAM
+cd /lib/STREAM
 
 # make from source and run
 make clean
@@ -145,7 +145,7 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
     
     
     # STREAM
-    cd ../STREAM
+    cd /lib/STREAM
     for (( n=0; n<=$((nsockets-1)); n++ ))
     do
         echo -n "Running STREAM $filename (dvfs $dvfs, socket $n) - "
@@ -158,7 +158,7 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
     done
     
     # membench
-    cd ../membench
+    cd /lib/membench
     for (( n=0; n<=$((nsockets-1)); n++ ))
     do
         echo -n "Running membench (dvfs $dvfs, socket $n, ST) - "
@@ -171,7 +171,7 @@ if [ ${arch} == 'x86_64' ] && [ -z $(lscpu | grep "Model name:" | grep -o -m 1 6
     done
     
     # NPB CPU ST
-    cd ../NPB-CPUTests
+    cd /lib/NPB-CPUTests
     cp config/make-ST.def config/make.def
     cp config/suite-ST.def config/suite.def
     rm -f bin/*
