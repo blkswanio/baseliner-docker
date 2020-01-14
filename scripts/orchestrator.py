@@ -109,10 +109,18 @@ if __name__ == "__main__":
         filename = "membench_out_socket{}_dvfs.csv".format(sno)
         df = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_df(client, df, machine_df, { 'socket': str(sno) }, 'membench')
-    
+
+        filename = "membench_out_socket{}_nodvfs.csv".format(sno)
+        df = pd.read_csv(os.path.join(BASE_DIR, filename))
+        write_df(client, df, machine_df, { 'socket': str(sno) }, 'membench')
+
     # Gather and Save stream benchmarks
     for sno in range(0, nsockets):
         filename = "stream_out_socket{}_dvfs.csv".format(sno)
+        df = pd.read_csv(os.path.join(BASE_DIR, filename))
+        write_df(client, df, machine_df, { 'socket': str(sno) }, 'stream')
+
+        filename = "stream_out_socket{}_nodvfs.csv".format(sno)
         df = pd.read_csv(os.path.join(BASE_DIR, filename))
         write_df(client, df, machine_df, { 'socket': str(sno) }, 'stream')
 
