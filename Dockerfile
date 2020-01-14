@@ -35,4 +35,4 @@ RUN apt-get update && \
 RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir influxdb
 ADD . /
-CMD ["/benchmark.sh"]
+CMD ["/scripts/benchmark.sh"]
